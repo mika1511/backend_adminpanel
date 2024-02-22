@@ -7,7 +7,9 @@ app.use((err, req, res, next) => {
 })
 
 const loginRouter = require('./routes/login')
+const CustomerCareRouter = require('./routes/CustomerCare')
 app.use('/v1/login', loginRouter);
+app.use('/v1/support', CustomerCareRouter );
 
 // app.use((req, res, next) => {
 //     console.log('Time: ', Date.now())

@@ -1,14 +1,14 @@
 const express = require('express')
 const router = express.Router();
-const { addAdmin , getAdmin} = require('../data-access/AdminDao');
-const { getAllAdmin } = require('../data-access/AdminDao');
+const { addAdmin , getAdmin ,getAllAdmin} = require('../data-access/AdminDao');
+
 
 router.use(express.json())
 
 router.get('/test', async (req, res) => {
     res.status(200).send('API WORKING');  
   })
-  
+
 router.get('/', async (req, res) => {
     try {
             console.time();
