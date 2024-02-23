@@ -1,5 +1,5 @@
 const express = require('express');
-const { getALLCases, getCaseById, intializeCases, intializeTasks, getALLTasks } = require('../data-access/CustomerDao');
+const { getALLCases, getCaseById, intializeCases, intializeTasks, getALLTasks , casePatchHandler } = require('../data-access/CustomerDao');
 const router = express.Router();
 
 router.use(express.json())
@@ -32,6 +32,20 @@ router.get('/:case_id', async (req, res) => {
     }
 });
 
+router.patch('/:case_id/', async (req, res) => {
+
+    try {
+        const case_id = req.params.case_id;
+
+        const{op, path, value} = req.body;
+        const user=await casePatchHandler({ case_id , op , path , value})
+            res.json(user)
+
+    } catch (error) {
+            console.error(error)
+            res.status(500).json({err: `Something went wrong`})
+    }
+});
 
 router.post('/', async (req, res) => {
     try {
@@ -46,7 +60,7 @@ router.post('/', async (req, res) => {
 
 router.post('/:case_id/tasks', async (req, res) => {
     try {
-       const data = req.body;
+        const data=req.params;
         const Cases = await intializeTasks(data);
         res.send(Cases);
     } catch (error) {
@@ -69,6 +83,7 @@ router.get('/:case_id/tasks', async (req, res) => {
 
 router.get('/:case_id/tasks/:task_id', async (req, res) => {
     try {
+
        const data = req.body;
         const Cases = await intializeTasks(data);
         res.send(Cases);
@@ -77,5 +92,7 @@ router.get('/:case_id/tasks/:task_id', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+
 
 module.exports = router;
