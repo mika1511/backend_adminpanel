@@ -1,14 +1,25 @@
 const express = require('express');
-const { getALLCases, getCaseById, intializeCases, intializeTasks, getALLTasks , casePatchHandler } = require('../data-access/CustomerDao');
+const { getALLCases, getCaseById, intializeCases, intializeTasks, getALLTasks , casePatchHandler, getTaskById, getAllCasesByStatus, getAllAgentCases } = require('../data-access/CustomerDao');
 const router = express.Router();
 
 router.use(express.json())
 
 router.get('/test', async (req, res) => {
     res.status(200).send(' CUSTOMER CARE API WORKING');  
-  })
+  });
 
-router.get('/', async (req, res) => {
+  router.post('/cases', async (req, res) => {
+    try {
+       const data = req.body;
+        const Cases = await intializeCases(data);
+        res.send(Cases);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.get('/cases', async (req, res) => {
     try {
             console.time();
             const cases = await getALLCases();
@@ -18,9 +29,21 @@ router.get('/', async (req, res) => {
             console.error(error)
             res.status(500).json({err: `Something went wrong`})
     }
-})
+});
 
-router.get('/:case_id', async (req, res) => {
+router.get('/cases/status', async (req, res) => {
+    
+    try {
+        const data = req.body;
+        const user=await getAllCasesByStatus(data)
+            res.json(user)
+    } catch (error) {
+            console.error(error)
+            res.status(500).json({err: `Something went wrong`})
+    }
+});
+
+router.get('/cases/:case_id', async (req, res) => {
     
     try {
         const caseId = req.params.case_id; 
@@ -32,14 +55,14 @@ router.get('/:case_id', async (req, res) => {
     }
 });
 
-router.patch('/:case_id/', async (req, res) => {
+router.patch('/cases/:case_id/', async (req, res) => {
 
     try {
         const case_id = req.params.case_id;
 
         const{op, path, value} = req.body;
-        const user=await casePatchHandler({ case_id , op , path , value})
-            res.json(user)
+        const patch=await casePatchHandler({ case_id , op , path , value})
+            res.json(patch)
 
     } catch (error) {
             console.error(error)
@@ -47,18 +70,7 @@ router.patch('/:case_id/', async (req, res) => {
     }
 });
 
-router.post('/', async (req, res) => {
-    try {
-       const data = req.body;
-        const Cases = await intializeCases(data);
-        res.send(Cases);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-router.post('/:case_id/tasks', async (req, res) => {
+router.post('/cases/:case_id/tasks', async (req, res) => {
     try {
         const data=req.params;
         const Cases = await intializeTasks(data);
@@ -69,7 +81,7 @@ router.post('/:case_id/tasks', async (req, res) => {
     }
 });
 
-router.get('/:case_id/tasks', async (req, res) => {
+router.get('/cases/:case_id/tasks', async (req, res) => {
     try {
             console.time();
             const tasks = await getALLTasks();
@@ -79,13 +91,13 @@ router.get('/:case_id/tasks', async (req, res) => {
             console.error(error)
             res.status(500).json({err: `Something went wrong`})
     }
-})
+});
 
-router.get('/:case_id/tasks/:task_id', async (req, res) => {
+router.get('/cases/:case_id/tasks/:task_id', async (req, res) => {
     try {
 
-       const data = req.body;
-        const Cases = await intializeTasks(data);
+       const data = req.params;
+        const Cases = await getTaskById(data);
         res.send(Cases);
     } catch (error) {
         console.error(error);

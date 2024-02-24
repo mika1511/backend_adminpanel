@@ -3,6 +3,7 @@ require('dotenv').config();
 const http = require('http');
 const ULID = require('ulid')
 const { invalidParameter, invalidOperation } = require('../utils/ErrorUtils');
+const { open } = require('fs');
 
 const agent = new http.Agent({
     keepAlive: true,
@@ -28,7 +29,7 @@ const dynamoClient = new AWS.DynamoDB.DocumentClient({
 
 const CASES_TABLE = "Cases"
 
-const intializeCases = async ({user_id,issue_type,issue_details,support_chat_id}) => {
+const intializeCases = async ({issue_type,issue_details,support_chat_id,user_id}) => {
     
     const item ={
         case_id : ULID.ulid(),
@@ -38,7 +39,7 @@ const intializeCases = async ({user_id,issue_type,issue_details,support_chat_id}
         create_ts :Date.now(),
         updated_ts:Date.now(),
         ETA :9,
-        status:"",
+        status:"open",
         issue_type :issue_type,
         issue_details:issue_details,
         support_chat_id:support_chat_id,
@@ -56,11 +57,11 @@ const intializeCases = async ({user_id,issue_type,issue_details,support_chat_id}
 }
 
 
-const intializeTasks = async ({task_details,agent_id}) => {
-    
+const intializeTasks = async ({case_id,agent_id,user_id,ticketRef_number,issue_details,issue_type,support_chat_id}) => {
+
     const item ={
-        case_id : ULID.ulid(),
-        ticketRef_number: ULID.ulid(),
+        case_id : case_id,
+        ticketRef_number: ticketRef_number,
         assignee : agent_id,
         reporter : user_id,
         create_ts :Date.now(),
@@ -73,14 +74,12 @@ const intializeTasks = async ({task_details,agent_id}) => {
         tasks:[
         {
             task_id: ULID.ulid(),
-            case_id: case_id,
             ETA :"",
             status:"",
-            assignee:{},
-            task_details :task_details,
+            task_details :"solving the issue",
             create_ts:Date.now(),
             updated_ts:Date.now(),
-        
+
         }]
     }
     const params = {
@@ -143,8 +142,9 @@ const updateAssignee = async ({case_id, value}) => {
         Key: {
             case_id
         },
-        UpdateExpression: "set assignee = :assignee" ,
-        ExpressionAttributeValues: { ':assignee': value },
+        UpdateExpression: "set assignee = :assignee ,  #status=:status" ,
+        ExpressionAttributeNames: { '#status': 'status' },
+        ExpressionAttributeValues: { ':assignee': value , ':status':"ack" },
         ReturnValues: "ALL_NEW",
     }
     const resp = await dynamoClient.update(params).promise()
@@ -185,7 +185,43 @@ const Handler = ({ case_id , path , value }) => {
     }
 }
 
+const getAllAgentCases = async ({assignee}) => {
+    const params = {
+        TableName: CASES_TABLE,
+        IndexName: "assignee-status-index",
+        KeyConditionExpression: "assignee = :assignee and #s= :status",
+        ExpressionAttributeNames: { 
+            "#s": "status" 
+        },
+        ExpressionAttributeValues: {
+            ":assignee": assignee,
+            ":status": "closed"
+        }
+    }
+    const agentCases = await dynamoClient.query(params).promise()
+
+    return agentCases.Items[0]
+}
+const getAllCasesByStatus = async ({status}) => {
+    const params = {
+
+        TableName: CASES_TABLE,
+        IndexName: "status-index",
+        KeyConditionExpression: "#s = :status", 
+        ExpressionAttributeNames: { 
+            "#s": "status" 
+        },
+        ExpressionAttributeValues: {
+            ":status": status
+        },
+    }
+    const openCases = await dynamoClient.query(params).promise()
+    return openCases.Items
+}
+
+
 module.exports = {
+
     intializeCases,
     getALLCases,
     getCaseById,
@@ -194,6 +230,8 @@ module.exports = {
     getALLTasks,
     updateAssignee,
     casePatchHandler,
-    updateStatus
+    updateStatus,
+    getAllCasesByStatus,
+    getAllAgentCases
     
 };  
